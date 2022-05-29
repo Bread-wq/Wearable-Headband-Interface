@@ -3,7 +3,7 @@ import stretch_body.robot
 import serial
 import math
 
-ser=serial.Serial('/dev/ttyUSB1',baudrate=9600,timeout=1)
+ser=serial.Serial('/dev/ttyUSB3',baudrate=9600,timeout=1)
 robot=stretch_body.robot.Robot()
 robot.startup()
 
