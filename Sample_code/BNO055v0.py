@@ -5,6 +5,8 @@ import math
 import numpy
 
 ser=serial.Serial('/dev/ttyUSB3',baudrate=115200,timeout=1)
+#ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1)
+
 robot=stretch_body.robot.Robot()
 robot.startup()
 robot.stow()
@@ -76,32 +78,36 @@ while 1:
     
     if state== 1:
         if roll>30:
-            robot.arm.move_by(-0.05)
-        elif roll<-30:
             robot.arm.move_by(0.05)
+        elif roll<-30:
+            robot.arm.move_by(-0.05)
     
         if pitch>30:
-            robot.lift.move_by(0.05)
-        elif pitch<-30:
             robot.lift.move_by(-0.05)
+        elif pitch<-30:
+            robot.lift.move_by(0.05)
 
     if state== 2:
-        wrist=robot.end_of_arm.status['wrist_pitch']['pos']
+        wpitch=robot.end_of_arm.status['wrist_pitch']['pos']
+        wyaw=robot.end_of_arm.status['wrist_yaw']['pos']
+        speed0=(abs(roll)-20)/10
+        speed1=(abs(pitch)-20)/10
         if roll>30:
-            robot.end_of_arm.move_by('wrist_yaw',float(wrist-math.radians(2)),v_des, a_des)
+            robot.end_of_arm.move_by('wrist_yaw',float(-math.radians(speed0)),v_des, a_des)
         elif roll<-30:
-            robot.end_of_arm.move_by('wrist_yaw',float(wrist+math.radians(2)),v_des, a_des)
+            robot.end_of_arm.move_by('wrist_yaw',float(+math.radians(speed0)),v_des, a_des)
    
         if pitch>30:
-            robot.end_of_arm.move_by('wrist_pitch',float(wrist-math.radians(2)),v_des, a_des)
+            robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed1)),v_des, a_des)
         elif pitch<-30:
-            robot.end_of_arm.move_by('wrist_pitch',float(wrist+math.radians(2)),v_des, a_des)
+            robot.end_of_arm.move_by('wrist_pitch',float(+math.radians(speed1)),v_des, a_des)
 
     if state== 3:
+        speed0=(abs(roll)-10)/5
         if roll>30:
-            robot.end_of_arm.move_by('stretch_gripper',5)
+            robot.end_of_arm.move_by('stretch_gripper',speed0)
         elif roll<-30:
-            robot.end_of_arm.move_by('stretch_gripper',-5)
+            robot.end_of_arm.move_by('stretch_gripper',-speed0)
     #if state== 4:
     #    robot.stop()
 
