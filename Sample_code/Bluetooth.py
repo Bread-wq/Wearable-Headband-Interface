@@ -15,6 +15,11 @@ robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
 LOW=15
 HIGH=30
+roll_threshold_L=LOW
+roll_threshold_R=-LOW
+pitch_threshold_L=LOW
+pitch_threshold_R=-LOW
+
 
 def getInfo(s):
   data=[0,0,0,0]
@@ -56,6 +61,7 @@ num_state=4
 # state 3: gripper movement
 # (state 4: stop)
 initialize()
+calibrate()
 
 while 1:
     arduinoData=ser.readline()
@@ -86,7 +92,7 @@ while 1:
             speed=(pitch-pitch_threshold_L)/100
             robot.base.translate_by(speed)
         elif pitch<pitch_threshold_R:
-            speed0=(pitch-pitch_threshold_R)/100
+            speed=(pitch-pitch_threshold_R)/100
             robot.base.translate_by(speed)
     
     if state== 1:
@@ -124,7 +130,7 @@ while 1:
             robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed)),v_des, a_des)
         elif pitch<pitch_threshold_R:
             speed=(pitch-pitch_threshold_R)/10
-            robot.end_of_arm.move_by('wrist_pitch',float(-ath.radians(speed)),v_des, a_des)
+            robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed)),v_des, a_des)
 
     if state== 3:
         #speed0=(abs(roll)-10)/5
