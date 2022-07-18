@@ -1,4 +1,8 @@
+# Todo: Make the calibration program automatic
+
+import socket
 import time
+import keyboard
 import stretch_body.robot
 import serial
 import math
@@ -7,11 +11,19 @@ import numpy
 #ser=serial.Serial('/dev/ttyUSB3',baudrate=115200,timeout=1)
 ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1)
 
+# global variables
 robot=stretch_body.robot.Robot()
 robot.startup()
 robot.stow()
 robot.lift.set_soft_motion_limit_min(0.2,limit_type='user')
 robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
+
+button_prev=False
+v_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['vel']
+a_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['accel']
+
+state=0
+num_state=4
 
 LOW=15
 HIGH=30
@@ -20,7 +32,22 @@ roll_threshold_R=-LOW
 pitch_threshold_L=LOW
 pitch_threshold_R=-LOW
 
+def connect_socket():
+    host = '172.26.166.129' #Server ip
+    port = 4000
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind((host, port))
+
+    print("Server Started")
+
+def disconnect_socket():    
+    c.close()
+    robot.stop()
+
+# @brief: given the string received from the tinypico, extract x,y,z angles from the 
+# string, and store them in data[0-2] respectively
+# data[3] contains the mode switching information
 def getInfo(s):
   data=[0,0,0,0]
   #print(s)
@@ -29,9 +56,12 @@ def getInfo(s):
       data[0]=float(sep[1])
       data[1]=float(sep[3])
       data[2]=float(sep[5])
-      data[3]=int(sep[7])
+      # data[3]=int(sep[7]) info for mode switching
   return data
 
+# @brief: Try to obtain xyz data from the bluetooth, and break out from the loop
+# once connection is established
+# (Connection is established when the data is not all 0s)
 def initialize():
   while 1:
     arduinoData=ser.readline()
@@ -44,17 +74,14 @@ def initialize():
       print("Connection established!\n")
       break
 
+# @brief: Set the threshold for each direction
 def calibrate():
     roll_threshold_L=LOW
     roll_threshold_R=-LOW
     pitch_threshold_L=LOW
     pitch_threshold_R=-LOW
 
-button_prev=0
-v_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['vel']
-a_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['accel']
-state=0
-num_state=4
+
 # state 0: base movement
 # state 1: arm movement
 # state 2: wrist
@@ -63,21 +90,40 @@ num_state=4
 initialize()
 calibrate()
 
+def is_pressed(msg):
+    if (msg=="Switch"):
+        return True
+    elif (msg=="No operation"):
+        return False
+    else:
+        print("Unexpected message"+msg)
+        disconnect_socket()
+        return False
+
+def update_mode(msg):
+    if (is_pressed(msg) and button_prev==False ):
+        button_prev=True
+        state=(state+1)%num_state
+    elif (is_pressed(msg)==False):
+        button_prev
+
+
 while 1:
     arduinoData=ser.readline()
     data=getInfo(arduinoData)
-    print("x: ",data[0]," y: ",data[1]," z: ",data[2], " button: ", data[3])
+    msg, addr = s.recvfrom(1024)
+    msg = msg.decode('utf-8')
+    print("Message from: " + str(addr))
+    print("From connected user: " + msg)
+    #print("Sending: " + data)
+    #s.sendto(data.encode('utf-8'), addr)
+    update_mode(msg)
+    print("x: ",data[0]," y: ",data[1]," z: ",data[2], "mode: ", state)
     yaw=data[0]
     pitch=data[1]
     roll=data[2]
-    button=data[3]
+    # button=data[3]
     print("pitch: ",pitch," roll: ",roll," yaw: ",yaw)
-    if (button_prev==0 and button==1):
-        button_prev=1
-        state=(state+1)%num_state
-    elif (button_prev==1 and button==0):
-        button_prev=0
-        
 
 
     if state== 0:
@@ -152,4 +198,3 @@ while 1:
     # robot.base.translate_by(-0.3)
     # time.sleep(2.0)
 
-robot.stop()
