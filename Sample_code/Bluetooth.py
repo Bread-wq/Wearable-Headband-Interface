@@ -15,7 +15,7 @@ ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1)
 robot=stretch_body.robot.Robot()
 robot.startup()
 robot.home()
-#robot.stow()
+# robot.stow()
 robot.lift.set_soft_motion_limit_min(0.2,limit_type='user')
 robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
@@ -31,6 +31,7 @@ v_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['vel']
 a_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['accel']
 
 state=0
+prev_state=0
 num_state=4
 
 LOW=15
@@ -70,6 +71,8 @@ def getInfo(s):
 # once connection is established
 # (Connection is established when the data is not all 0s)
 def initialize():
+  robot.head.move_to('head_tilt', math.radians(-90))
+  robot.push_command()
   while 1:
     arduinoData=ser.readline()
     data=getInfo(arduinoData)
@@ -98,6 +101,7 @@ def calibrate():
 initialize()
 calibrate()
 
+
 def is_pressed(msg):
     if (msg=="Switch"):
         return True
@@ -116,9 +120,9 @@ def update_mode(msg):
     if (is_pressed(msg) and button_prev==False ):
         button_prev=True
         state=(state+1)%num_state
+        # switch_state()
     elif (is_pressed(msg)==False):
         button_prev=False
-
 
 while 1:
     arduinoData=ser.readline()
@@ -137,8 +141,9 @@ while 1:
     # button=data[3]
     print("pitch: ",pitch," roll: ",roll," yaw: ",yaw)
 
-
     if state== 0:
+        # base
+        robot.head.move_to('head_pan', math.radians(0));
         if roll>roll_threshold_L:
             speed=(roll-roll_threshold_L)/base_factor
             robot.base.rotate_by(speed)
@@ -154,9 +159,8 @@ while 1:
             robot.base.translate_by(speed)
     
     if state== 1:
-        #speed0=(abs(roll)-25)/100
-        #speed1=(abs(pitch)-25)/100
-
+        # arm
+        robot.head.move_to('head_pan', math.radians(90));
         if roll>roll_threshold_L:
             speed=(roll-roll_threshold_L)/arm_factor
             robot.arm.move_by(speed)
@@ -172,10 +176,10 @@ while 1:
             robot.lift.move_by(-speed)
 
     if state== 2:
+        # wrist
+        robot.head.move_to('head_pan', math.radians(90));
         wpitch=robot.end_of_arm.status['wrist_pitch']['pos']
         wyaw=robot.end_of_arm.status['wrist_yaw']['pos']
-        #speed0=(abs(roll)-25)/10
-        #speed1=(abs(pitch)-25)/10
         if roll>roll_threshold_L:
             speed=(roll-roll_threshold_L)/wrist_factor
             robot.end_of_arm.move_by('wrist_yaw',float(-math.radians(speed)),v_des, a_des)
@@ -191,15 +195,14 @@ while 1:
             robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed)),v_des, a_des)
 
     if state== 3:
-        #speed0=(abs(roll)-10)/5
+        # gripper
+        robot.head.move_to('head_pan', math.radians(90));
         if roll>roll_threshold_L:
             speed=(roll-roll_threshold_L)/gripper_factor
             robot.end_of_arm.move_by('stretch_gripper',speed)
         elif roll<roll_threshold_R:
             speed=(roll-roll_threshold_R)/gripper_factor
             robot.end_of_arm.move_by('stretch_gripper',speed)
-    #if state== 4:
-    #    robot.stop()
 
     robot.push_command()
     # robot.arm.move_by(-0.1)
