@@ -15,7 +15,6 @@ def Main():
         data = data.decode('utf-8')
         print("Message from: " + str(addr))
         print("From connected user: " + data)
-        data = data.upper()
         print("Sending: " + data)
         s.sendto(data.encode('utf-8'), addr)
     c.close()

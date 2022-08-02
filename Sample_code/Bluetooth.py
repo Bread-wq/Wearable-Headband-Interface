@@ -1,4 +1,5 @@
 # Todo: Make the calibration program automatic
+# This version works with Mode_switching_spacebar.py as a client
 
 import socket
 import time
@@ -21,7 +22,7 @@ robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
 # speed scaling factors
 base_factor=70
-arm_factor=70
+arm_factor=100
 wrist_factor=4
 gripper_factor=4
 
@@ -38,7 +39,7 @@ LOW=15
 HIGH=30
 roll_threshold_L=LOW
 roll_threshold_R=-LOW
-pitch_threshold_L=LOW
+pitch_threshold_L=LOW/2
 pitch_threshold_R=-LOW
 host = '172.26.163.219' #Server ip 1075
 # host = '172.26.166.129' #Server ip 1082
@@ -108,7 +109,7 @@ def is_pressed(msg):
     elif (msg=="No operation"):
         return False
     elif (msg=="Connected"):
-        print("Client COnnected/n")
+        print("Client connected/n")
         return False
     else:
         print("Unexpected message"+msg)
@@ -146,10 +147,10 @@ while 1:
         robot.head.move_to('head_pan', math.radians(0));
         if roll>roll_threshold_L:
             speed=(roll-roll_threshold_L)/base_factor
-            robot.base.rotate_by(speed)
+            robot.base.rotate_by(-speed)
         elif roll<roll_threshold_R:
             speed=(roll-roll_threshold_R)/base_factor
-            robot.base.rotate_by(speed)
+            robot.base.rotate_by(-speed)
     
         if pitch>pitch_threshold_L:
             speed=(pitch-pitch_threshold_L)/base_factor
@@ -197,11 +198,11 @@ while 1:
     if state== 3:
         # gripper
         robot.head.move_to('head_pan', math.radians(90));
-        if roll>roll_threshold_L:
-            speed=(roll-roll_threshold_L)/gripper_factor
+        if pitch>pitch_threshold_L:
+            speed=(pitch-pitch_threshold_L)/gripper_factor
             robot.end_of_arm.move_by('stretch_gripper',speed)
-        elif roll<roll_threshold_R:
-            speed=(roll-roll_threshold_R)/gripper_factor
+        elif pitch<pitch_threshold_R:
+            speed=(pitch-pitch_threshold_R)/gripper_factor
             robot.end_of_arm.move_by('stretch_gripper',speed)
 
     robot.push_command()
