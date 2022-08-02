@@ -21,7 +21,7 @@ import keyboard
 # global variables
 robot=stretch_body.robot.Robot()
 robot.startup()
-#robot.home()
+robot.home()
 #robot.stow()
 robot.lift.set_soft_motion_limit_min(0.2,limit_type='user')
 robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
@@ -39,7 +39,11 @@ a_des=stretch_body.wrist_yaw.WristYaw().params['motion']['default']['accel']
 
 state=0
 num_state=4
-head_control=True
+head_control=False
+
+zero_X=0
+zero_Y=0
+zero_Z=0
 
 LOW=15
 HIGH=30
@@ -84,7 +88,8 @@ def calibrate():
 #calibrate()
 
 def update_mode(msg):
-    global state, head_control
+    global state, head_control, zero_X, zero_Y, zero_Z
+    global roll_threshold_L, roll_threshold_R, pitch_threshold_L, pitch_threshold_R
     if ( msg == "Switch"):
         state=(state+1)%num_state
         head_control=True
@@ -103,6 +108,15 @@ def update_mode(msg):
         head_control=False
     elif (msg=="enable"):
         head_control=True
+        n = 5
+        data = np.mean(np.array(all_acc_data)[-n:,0:4], axis = 0) #average last 5 accelerometer values
+        zero_X = data[0]
+        zero_Y = data[1] #pitch
+        zero_Z = data[2] #roll
+        roll_threshold_L= LOW + zero_Z
+        roll_threshold_R= -LOW + zero_Z
+        pitch_threshold_L = LOW/2 + zero_Y
+        pitch_threshold_R = -LOW + zero_Y
 
 
 
