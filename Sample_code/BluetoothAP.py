@@ -19,6 +19,18 @@ import keyboard
 #ser=serial.Serial('/dev/tty.ESP32test-ESP32SPP',baudrate=115200,timeout=0.05)
 
 
+#participant setup steps
+import random
+participant_num =  1 
+random.seed(participant_num) 
+tasks = {1: "bottle", 2: "light", 3: "clean leg", 4: "blanket", 5: "web interface comparison"}
+num_tasks = 5
+task_start_num = int(input("Enter Starting Task Number: "))
+trial_num = int(input("Enter Trial Num: "))
+random_order_list = random.sample(range(1,1+num_tasks), num_tasks)
+print("Do Task:", tasks[random_order_list[task_start_num]])
+datafilepath = '/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
+
 # global variables
 robot=stretch_body.robot.Robot()
 robot.startup()
@@ -97,12 +109,13 @@ def update_mode(msg):
     elif (msg == "Client Connected"):
         print(msg)
     elif (msg == "Client Disconnected"):
-        filename = 'acc_data.pkl'
-        outfile = open(filename, 'wb')
+        outfile = open(datafilepath, 'wb')
         data_dict = {'data' : all_acc_data, 'mode_data' : mode_data}
         pkl.dump(data_dict, outfile, protocol=2)
         outfile.close()
         robot.stop()
+        print('Saved Data')
+        print('Task Number Completed:', task_start_num, "  Trial Number Completed:", trial_num)
         
     elif (msg=="disable"):
         head_control=False
@@ -305,8 +318,6 @@ while(1):
                     speed = 0 
                     robot_command = 'ww'
                     
-            print(speed)
-
         if state== 3:
             if pitch>pitch_threshold_L:
                 speed=(pitch-pitch_threshold_L)/gripper_factor
