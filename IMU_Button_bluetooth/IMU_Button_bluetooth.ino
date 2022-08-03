@@ -25,6 +25,24 @@
 TinyPICO tp = TinyPICO();
 BluetoothSerial SerialBT;
 
+volatile int interruptCounter;
+unsigned long curr_time; 
+unsigned long start_time; 
+ 
+hw_timer_t * timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+ 
+void IRAM_ATTR onTimer() {
+  portENTER_CRITICAL_ISR(&timerMux);
+  interruptCounter++;
+  portEXIT_CRITICAL_ISR(&timerMux);
+ 
+}
+
+char newline = B11111111;
+
+
+
 /* This driver uses the Adafruit unified sensor library (Adafruit_Sensor),
    which provides a common 'type' for sensor data and some helper functions.
 
@@ -150,6 +168,7 @@ void setup(void)
   Serial.println("Orientation Sensor Test"); Serial.println("");
   
   /* Initialise the sensor */
+
   if(!bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -166,7 +185,12 @@ void setup(void)
   displaySensorStatus();
 
   bno.setExtCrystalUse(true);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &onTimer, true);
+  timerAlarmWrite(timer, 1000000/100, true); //the number in this line sets the amount of time before each interrupt in milliseconds. Right now, we're sampling at 100 Hz.  
+  timerAlarmEnable(timer);
+  start_time = micros();
 }
 
 /**************************************************************************/
@@ -180,33 +204,41 @@ void loop(void)
   /* Get a new sensor event */
   //bool IsChargingBattery();
   //Serial.print(tp.IsChargingBattery());
-  sensors_event_t event;
-  bno.getEvent(&event);
-  int buttonState = digitalRead(BUTTON_PIN);
-  
-  /* Display the floating point data */
-  SerialBT.print("X: ");
-  SerialBT.print(event.orientation.x, 4);
-  //Serial.println(event.orientation.x, 4);
-  SerialBT.print("\tY: ");
-  SerialBT.print(event.orientation.y, 4);
-  SerialBT.print("\tZ: ");
-  SerialBT.print(event.orientation.z, 4);
-  //SerialBT.print("\tButton: ");
-  //SerialBT.print(buttonState);
-  /* Optional: Display calibration status */
-  //displayCalStatus();
 
-  /* Optional: Display sensor status (debug only) */
-  //displaySensorStatus();
-
-  /* New line for the next sample */
-  SerialBT.println("");
-  if (Serial.available()) {
-    SerialBT.write(Serial.read());
+  if (interruptCounter > 0) {
+ 
+    portENTER_CRITICAL(&timerMux);
+    interruptCounter--;
+    portEXIT_CRITICAL(&timerMux);
+ 
+    sensors_event_t event;
+    curr_time = micros() - start_time;
+    bno.getEvent(&event);    
+    
+    /* Display the floating point data */
+    /*
+    SerialBT.print(','); 
+    SerialBT.print(event.orientation.x); 
+    SerialBT.print(','); 
+    SerialBT.print(event.orientation.y);
+    SerialBT.print(','); 
+    SerialBT.print(event.orientation.z);
+    SerialBT.print(','); 
+    SerialBT.print(micros()); 
+    SerialBT.print(','); 
+    SerialBT.println(); 
+    */
+    SerialBT.write((byte *)&newline, 1); 
+    SerialBT.write((byte *)&newline, 1); 
+    SerialBT.write((byte *)&newline, 1); 
+    int x = (int)(event.orientation.x*100);
+    int y = (int)((event.orientation.y + 180)*100);
+    int z = (int)((event.orientation.z + 180)*100);
+    SerialBT.write((byte *)&x, 2); 
+    SerialBT.write((byte *)&y, 2); 
+    SerialBT.write((byte *)&z, 2); 
+    SerialBT.write((byte *)&curr_time, 4);
+ 
   }
-
-
-  /* Wait the specified delay before requesting nex data */
-  delay(BNO055_SAMPLERATE_DELAY_MS);
+  
 }
