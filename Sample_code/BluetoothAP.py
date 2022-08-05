@@ -104,6 +104,39 @@ def calibrate():
 def update_mode(msg):
     global state, head_control, zero_X, zero_Y, zero_Z
     global roll_threshold_L, roll_threshold_R, pitch_threshold_L, pitch_threshold_R
+
+    if (msg == "drive"):
+        state = 0 
+        #send confirmation 
+    elif (msg == "arm"):
+        state = 1
+    elif (msg == "wrist"):
+        state = 2
+    elif (msg == "gripper"):
+        state = 3
+    elif (msg == "stop"):  #stop control using hat 
+        head_control=False
+    elif (msg == "start"): #start control using hat and calibrate
+        head_control=True
+        n = 5
+        data = np.mean(np.array(all_acc_data)[-n:,0:5], axis = 0) #average last 5 accelerometer values
+        zero_X = data[0]
+        zero_Y = data[1] #pitch
+        zero_Z = data[2] #roll
+        roll_threshold_L= LOW + zero_Z
+        roll_threshold_R= -LOW + zero_Z
+        pitch_threshold_L = LOW/2 + zero_Y
+        pitch_threshold_R = -LOW + zero_Y
+    elif (msg == "end"): #end task
+        head_control = False
+        outfile = open(datafilepath, 'wb')
+        data_dict = {'data' : all_acc_data, 'mode_data' : mode_data}
+        pkl.dump(data_dict, outfile, protocol=2)
+        outfile.close()
+        robot.stop()
+        print('Saved Data')
+        print('Task Number Completed:', task_start_num, "  Trial Number Completed:", trial_num)
+    '''
     if (msg == "Switch"):
         state=(state+1)%num_state
     elif (msg == "Client Connected"):
@@ -130,6 +163,7 @@ def update_mode(msg):
         roll_threshold_R= -LOW + zero_Z
         pitch_threshold_L = LOW/2 + zero_Y
         pitch_threshold_R = -LOW + zero_Y
+    '''
 
 
 
