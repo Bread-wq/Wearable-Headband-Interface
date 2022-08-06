@@ -7,12 +7,27 @@ import keyboard
 import stretch_body.robot
 import serial
 import math
-
+import atexit
 
 import numpy as np
 import pickle as pkl
 import keyboard
 
+def kill_robot():
+    #robot.stop()
+    #time.sleep(2)
+    print()
+    print('Emergency Stopped')
+    print()
+    robot.base.set_rotational_velocity(0)
+    robot.base.set_translate_velocity(0)
+    robot.arm.set_velocity(0)
+    robot.lift.set_velocity(0)
+    robot.end_of_arm.move_by('stretch_gripper',0)
+    robot.end_of_arm.move_by('wrist_yaw',0)
+    robot.end_of_arm.move_by('wrist_pitch',0)
+    robot.push_command()
+atexit.register(kill_robot)
 
 #ser=serial.Serial('/dev/ttyUSB3',baudrate=115200,timeout=1)
 #ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1)
@@ -29,19 +44,66 @@ task_start_num = int(input("Enter Starting Task Number: "))
 trial_num = int(input("Enter Trial Num: "))
 random_order_list = random.sample(range(1,1+num_tasks), num_tasks)
 print("Do Task:", tasks[random_order_list[task_start_num]])
-datafilepath = '/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
+datafilepath = str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
 
 # global variables
 robot=stretch_body.robot.Robot()
 robot.startup()
-#robot.home()
+
+
+'''
+joints = robot.end_of_arm.joints
+print(joints)
+
+#robot.end_of_arm.motors["wrist_pitch"].motor.pretty_print()
+robot.end_of_arm.motors["wrist_yaw"].motor.enable_pwm()
+print()
+robot.end_of_arm.motors["wrist_yaw"].motor.set_pwm(100)
+time.sleep(2)
+robot.end_of_arm.motors["wrist_yaw"].motor.set_pwm(0)
+
+robot.end_of_arm.motors["wrist_pitch"].motor.enable_vel()
+robot.end_of_arm.motors["wrist_pitch"].motor.set_vel(50)
+print()
+robot.end_of_arm.motors["wrist_pitch"].motor.pretty_print()
+
+print("Enabled Velocity control")
+time.sleep(1)
+robot.end_of_arm.motors["wrist_pitch"].motor.set_vel(0.0)
+#time.sleep(5)
+#robot.end_of_arm.motors["stretch_gripper"].follow_trajectory(v_r = 0.0)
+'''
+#robot.home() #don't use this - just run "python home.py"
 #robot.stow()
 robot.lift.set_soft_motion_limit_min(0.2,limit_type='user')
 robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
+
+
+
+
+
+def interpolation(x, y1, y2, x1, x2): #x1  = LOW, #x2 = HIGH, #x is the current angle of head, all must be positive
+    y = y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
+    print(x, y, y1, y2, x1, x2)
+    if y > y2: 
+        y = y2
+    elif y1 > y:
+        y = y1 
+    print(x, y, y1, y2, x1, x2)
+    print()
+    return y 
+
 # speed scaling factors
-base_factor=70
-arm_factor=100
+base_min_translation_speed = 0 #m/s
+base_max_translation_speed = 0.5 #m/s
+base_min_rotation_speed = 0 #rad/s
+base_max_rotation_speed = 0.8 #rad/s
+arm_min_lift_speed = 0 #m/s
+arm_max_lift_speed = 0.15 #m/s
+arm_min_extend_speed = 0 #m/s
+arm_max_extend_speed = 0.15 #m/s
+
 wrist_factor=4
 gripper_factor=3
 
@@ -59,12 +121,10 @@ zero_X=0
 zero_Y=0
 zero_Z=0
 
-LOW=15
-HIGH=30
-roll_threshold_L=LOW
-roll_threshold_R=-LOW
-pitch_threshold_L=LOW/2
-pitch_threshold_R=-LOW
+threshold_start= 15
+angle_range = 20
+
+
 host = '172.26.163.219' #Server ip 1075
 # host = '172.26.166.129' #Server ip 1082
 port = 4000
@@ -79,18 +139,7 @@ def disconnect_socket():
     c.close()
     robot.stop()
 
-# @brief: given the string received from the tinypico, extract x,y,z angles from the 
-# string, and store them in data[0-2] respectively
-# data[3] contains the mode switching information
 
-    
-
-
-def calibrate():
-    roll_threshold_L=LOW
-    roll_threshold_R=-LOW
-    pitch_threshold_L=LOW
-    pitch_threshold_R=-LOW
 
 
 # state 0: base movement
@@ -98,16 +147,14 @@ def calibrate():
 # state 2: wrist
 # state 3: gripper movement
 # (state 4: stop)
-#initialize()
-#calibrate()
+
 
 def update_mode(msg):
     global state, head_control, zero_X, zero_Y, zero_Z
-    global roll_threshold_L, roll_threshold_R, pitch_threshold_L, pitch_threshold_R
+    global roll_threshold_L, roll_threshold_H, pitch_threshold_L, pitch_threshold_H
 
     if (msg == "drive"):
         state = 0 
-        #send confirmation 
     elif (msg == "arm"):
         state = 1
     elif (msg == "wrist"):
@@ -118,17 +165,17 @@ def update_mode(msg):
         head_control=False
     elif (msg == "start"): #start control using hat and calibrate
         head_control=True
+        robot.startup()
         n = 5
         data = np.mean(np.array(all_acc_data)[-n:,0:5], axis = 0) #average last 5 accelerometer values
         zero_X = data[0]
         zero_Y = data[1] #pitch
         zero_Z = data[2] #roll
-        roll_threshold_L= LOW + zero_Z
-        roll_threshold_R= -LOW + zero_Z
-        pitch_threshold_L = LOW/2 + zero_Y
-        pitch_threshold_R = -LOW + zero_Y
+        roll_threshold_L= -threshold_start + zero_Z
+        roll_threshold_H= threshold_start + zero_Z
+        pitch_threshold_L = -threshold_start + zero_Y
+        pitch_threshold_H = threshold_start + zero_Y
     elif (msg == "end"): #end task
-        head_control = False
         outfile = open(datafilepath, 'wb')
         data_dict = {'data' : all_acc_data, 'mode_data' : mode_data}
         pkl.dump(data_dict, outfile, protocol=2)
@@ -136,34 +183,7 @@ def update_mode(msg):
         robot.stop()
         print('Saved Data')
         print('Task Number Completed:', task_start_num, "  Trial Number Completed:", trial_num)
-    '''
-    if (msg == "Switch"):
-        state=(state+1)%num_state
-    elif (msg == "Client Connected"):
-        print(msg)
-    elif (msg == "Client Disconnected"):
-        outfile = open(datafilepath, 'wb')
-        data_dict = {'data' : all_acc_data, 'mode_data' : mode_data}
-        pkl.dump(data_dict, outfile, protocol=2)
-        outfile.close()
-        robot.stop()
-        print('Saved Data')
-        print('Task Number Completed:', task_start_num, "  Trial Number Completed:", trial_num)
-        
-    elif (msg=="disable"):
-        head_control=False
-    elif (msg=="enable"):
-        head_control=True
-        n = 5
-        data = np.mean(np.array(all_acc_data)[-n:,0:5], axis = 0) #average last 5 accelerometer values
-        zero_X = data[0]
-        zero_Y = data[1] #pitch
-        zero_Z = data[2] #roll
-        roll_threshold_L= LOW + zero_Z
-        roll_threshold_R= -LOW + zero_Z
-        pitch_threshold_L = LOW/2 + zero_Y
-        pitch_threshold_R = -LOW + zero_Y
-    '''
+    
 
 
 
@@ -190,16 +210,8 @@ allowable_time_diff = 1e6/samp_freq + (1e6/samp_freq)*allowable_lag
 last_read_time = time.time()
 
 
-def space_pressed_func():
-    space_pressed = True
-
-#keyboard.add_hotkey('space', space_pressed_func)
-
-space_pressed = False 
-
 connect_socket()
 ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1) #connect to hat
-calibrate()
 while(1):   
     curr_time = time.time()*1e6
 
@@ -226,10 +238,8 @@ while(1):
                 all_acc_data.append(data)
                 #print(read_time_diff)
                 last_read_time = curr_time
-
             else:
                 print("corrupted accelerometer data", X, Y, Z, pico_time_diff, allowable_time_diff)
-
             for n in range(0, message_length):
                 buffer.pop(0)
         else:
@@ -262,29 +272,29 @@ while(1):
 
         if (head_control==False):
             robot_command = 's'
-
+            robot.stop()
         elif state== 0:
             if abs(roll) > abs(pitch):
-                robot.base.translate_by(0)
-                if roll>roll_threshold_L:
-                    speed=(roll-roll_threshold_L)/base_factor
-                    robot.base.rotate_by(-speed)
+                robot.base.set_translate_velocity(0)
+                if roll>roll_threshold_H:
+                    speed = -interpolation(roll, base_min_rotation_speed, base_max_rotation_speed, roll_threshold_H, roll_threshold_H+angle_range)
+                    robot.base.set_rotational_velocity(speed)
                     robot_command = 'br'
-                elif roll<roll_threshold_R:
-                    speed=(roll-roll_threshold_R)/base_factor
-                    robot.base.rotate_by(-speed)
+                elif roll<roll_threshold_L:
+                    speed = interpolation(roll, base_min_rotation_speed, base_max_rotation_speed, roll_threshold_L, roll_threshold_L-angle_range)
+                    robot.base.set_rotational_velocity(speed)
                     robot_command = 'bl'
                 else: 
                     robot_command = 'bw'
             else:
-                robot.base.rotate_by(0)
-                if pitch>pitch_threshold_L:
-                    speed=(pitch-pitch_threshold_L)/base_factor
-                    robot.base.translate_by(speed)
+                robot.base.set_rotational_velocity(0)
+                if pitch>pitch_threshold_H:
+                    speed = interpolation(pitch, base_min_translation_speed, base_max_translation_speed, pitch_threshold_H, pitch_threshold_H+angle_range)
+                    robot.base.set_translate_velocity(speed)
                     robot_command = 'bf'
-                elif pitch<pitch_threshold_R:
-                    speed=(pitch-pitch_threshold_R)/base_factor
-                    robot.base.translate_by(speed)
+                elif pitch<pitch_threshold_L:
+                    speed = -interpolation(pitch, base_min_translation_speed, base_max_translation_speed, pitch_threshold_L, pitch_threshold_L-angle_range)
+                    robot.base.set_translate_velocity(speed)
                     robot_command = 'bb'
                 else: 
                     robot_command = 'bw'
@@ -293,27 +303,27 @@ while(1):
             #speed0=(abs(roll)-25)/100
             #speed1=(abs(pitch)-25)/100
             if abs(roll) > abs(pitch):
-                robot.lift.move_by(0)
-                if roll>roll_threshold_L:
-                    speed=(roll-roll_threshold_L)/arm_factor
-                    robot.arm.move_by(speed)
+                robot.lift.set_velocity(0)
+                if roll>roll_threshold_H:
+                    speed = interpolation(roll, arm_min_extend_speed, arm_max_extend_speed, roll_threshold_H, roll_threshold_H+angle_range)
+                    robot.arm.set_velocity(speed)
+                    robot_command = 'ae'
+                elif roll<roll_threshold_L:
+                    speed = -interpolation(roll, arm_min_extend_speed, arm_max_extend_speed, roll_threshold_L, roll_threshold_L-angle_range)
+                    robot.arm.set_velocity(speed)
                     robot_command = 'ar'
-                elif roll<roll_threshold_R:
-                    speed=(roll-roll_threshold_R)/arm_factor
-                    robot.arm.move_by(speed)
-                    robot_command = 'al'
                 else: 
                     robot_command = 'aw'
             else:
-                robot.arm.move_by(0)
-                if pitch>pitch_threshold_L:
-                    speed=(pitch-pitch_threshold_L)/arm_factor
-                    robot.lift.move_by(-speed)
-                    robot_command = 'ad' #arm extend
-                elif pitch<pitch_threshold_R:
-                    speed=(pitch-pitch_threshold_R)/arm_factor
-                    robot.lift.move_by(-speed)
-                    robot_command = 'au' #arm retract
+                robot.arm.set_velocity(0)
+                if pitch>pitch_threshold_H:
+                    speed = -interpolation(pitch, arm_min_extend_speed, arm_max_extend_speed, pitch_threshold_H, pitch_threshold_H+angle_range)
+                    robot.lift.set_velocity(speed)
+                    robot_command = 'ad' 
+                elif pitch<pitch_threshold_L:
+                    speed = interpolation(pitch, arm_min_extend_speed, arm_max_extend_speed, pitch_threshold_L, pitch_threshold_L-angle_range)
+                    robot.lift.set_velocity(speed)
+                    robot_command = 'au' 
                 else: 
                     robot_command = 'aw'
                 
@@ -322,15 +332,14 @@ while(1):
         elif state== 2:
             wpitch=robot.end_of_arm.status['wrist_pitch']['pos']
             wyaw=robot.end_of_arm.status['wrist_yaw']['pos']
-            rads_to_move = 0.15
             if abs(roll) > abs(pitch):
                 robot.end_of_arm.move_by('wrist_pitch', 0, 0, 0)
                 #robot.end_of_arm.move_by('wrist_yaw',0,0, 0)
-                if roll>roll_threshold_L:
+                if roll>roll_threshold_H:
                     speed=(roll-roll_threshold_L)/wrist_factor
                     robot.end_of_arm.move_by('wrist_yaw',float(-math.radians(speed)),v_des, a_des)
                     robot_command = 'wr'
-                elif roll<roll_threshold_R:
+                elif roll<roll_threshold_L:
                     speed=(roll-roll_threshold_L)/wrist_factor
                     robot.end_of_arm.move_by('wrist_yaw',float(-math.radians(speed)),v_des, a_des)
                     robot_command = 'wl'
@@ -340,12 +349,12 @@ while(1):
             else:
                 robot.end_of_arm.move_by('wrist_yaw', 0, 0, 0)
                 #robot.end_of_arm.move_by('wrist_pitch', 0, 0, 0)
-                if pitch>pitch_threshold_L:
-                    speed=(pitch-pitch_threshold_L)/wrist_factor
+                if pitch>pitch_threshold_H:
+                    speed=(pitch-pitch_threshold_H)/wrist_factor
                     robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed)),v_des, a_des)
                     robot_command = 'wd'
-                elif pitch<pitch_threshold_R:
-                    speed=(pitch-pitch_threshold_R)/wrist_factor
+                elif pitch<pitch_threshold_L:
+                    speed=(pitch-pitch_threshold_L)/wrist_factor
                     robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed)),v_des, a_des)
                     robot_command = 'wu'
                 else:
@@ -353,12 +362,12 @@ while(1):
                     robot_command = 'ww'
                     
         if state== 3:
-            if pitch>pitch_threshold_L:
-                speed=(pitch-pitch_threshold_L)/gripper_factor
+            if pitch>pitch_threshold_H:
+                speed=(pitch-pitch_threshold_H)/gripper_factor
                 robot.end_of_arm.move_by('stretch_gripper',speed)
                 robot_command = 'go'
-            elif pitch<pitch_threshold_R:
-                speed=(pitch-pitch_threshold_R)/gripper_factor
+            elif pitch<pitch_threshold_L:
+                speed=(pitch-pitch_threshold_L)/gripper_factor
                 robot.end_of_arm.move_by('stretch_gripper',speed)
                 robot_command = 'gc'
             else: 
