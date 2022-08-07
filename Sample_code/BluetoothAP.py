@@ -97,13 +97,6 @@ zero_Z=0
 threshold_start= 15
 angle_range = 20
 
-
-host = '172.26.163.219' #Server ip 1075
-# host = '172.26.166.129' #Server ip 1082
-port = 4000
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(0.0)
-
 def connect_socket():
     s.bind((host, port))
     print("Server Started")
@@ -111,6 +104,25 @@ def connect_socket():
 def disconnect_socket():    
     c.close()
     robot.stop()
+
+host = '172.26.163.219' #Server ip 1075
+# host = '172.26.166.129' #Server ip 1082
+port = 4000
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.settimeout(0.0)
+connect_socket()
+
+while True:
+    try:
+        msg, addr = s.recvfrom(1024)
+        msg = msg.decode('utf-8')
+        if msg == 'connecting':
+            s.sendto(msg.encode('utf-8'), addr)
+            break
+    except socket.error:
+        pass
+
+print('Connected')
 
 
 def adjust_head(state):
@@ -182,9 +194,9 @@ allowable_time_diff = 1e6/samp_freq + (1e6/samp_freq)*allowable_lag
 last_read_time = time.time()
 
 
-connect_socket()
 adjust_head(0)
 ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1) #connect to hat
+last_detection_time = time.time()
 while(1):   
     curr_time = time.time()*1e6
 
@@ -217,16 +229,30 @@ while(1):
                 buffer.pop(0)
         else:
             buffer.pop(0)
-    
+                
+
     send_time_diff = curr_time - last_send_time
     if send_time_diff > send_period and np.shape(all_acc_data)[0] > 10:
         last_send_time = curr_time
         #average last n accelerometer values 
         n = 5
         data = np.mean(np.array(all_acc_data)[-n:,0:5], axis = 0)
+
+        threshold = 1.0
+        last_sec = np.array(all_acc_data)[-(int(samp_freq*1.0)):, 0] #one second
+        diffs = np.diff(last_sec)
+        #print(np.max(diffs), np.min(diffs))
+        if np.max(diffs) > threshold and np.min(diffs) < -threshold:
+            message = "detected"
+            print(curr_time-last_detection_time)
+            if curr_time - last_detection_time > 3*1e6:
+                print(message)
+                try: 
+                    s.sendto(message.encode('utf-8'), addr)
+                except socket.error:
+                    pass
+                last_detection_time = curr_time
         
-        
-        #this is where you send the data to the robot  
         try:
             msg, addr = s.recvfrom(1024)
             msg = msg.decode('utf-8')
