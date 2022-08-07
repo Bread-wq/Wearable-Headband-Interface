@@ -8,6 +8,7 @@ import stretch_body.robot
 import serial
 import math
 import atexit
+import random
 
 import numpy as np
 import pickle as pkl
@@ -69,7 +70,6 @@ atexit.register(kill_robot)
 
 
 #participant setup steps
-import random
 participant_num =  1 
 random.seed(participant_num) 
 tasks = {1: "bottle", 2: "light", 3: "clean leg", 4: "blanket", 5: "web interface comparison"}
@@ -254,8 +254,18 @@ allowable_lag = 0.1 #20-percent
 allowable_time_diff = 1e6/samp_freq + (1e6/samp_freq)*allowable_lag
 last_read_time = time.time()
 
-
 connect_socket()
+
+def adjust_head(state):
+    if (state==0):
+        # robot in drive mode
+        robot.head.move_to('head_pan', math.radians(0))
+        robot.head.move_to('head_tilt',math.radians(-65))
+        robot.push_command()
+    else:
+        robot.head.move_to('head_pan', math.radians(-90))
+        robot.head.move_to('head_tilt',math.radians(-50))
+        robot.push_command()
 
 ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1) #connect to hat
 while(1):   
@@ -314,7 +324,7 @@ while(1):
         roll=data[2]
         # button=data[3]
 
-
+        
         if (head_control==False):
             robot_command = 's'
             robot.stop()
