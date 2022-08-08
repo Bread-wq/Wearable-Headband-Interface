@@ -8,6 +8,7 @@
 import pyrealsense2 as rs
 import numpy as np
 import cv2
+import time
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -35,21 +36,34 @@ pipeline.start(config)
 
 try:
     while True:
-
         # Wait for a coherent pair of frames: depth and color
+        prev_time=time.time()
+        
         frames = pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
         if not color_frame:
             continue
+        cur_time=time.time()
+        print("Part 1 time (getting the frame): ", cur_time-prev_time)
+        prev_time=cur_time
 
         # Convert images to numpy arrays
         color_image = np.asanyarray(color_frame.get_data())
         color_colormap_dim = color_image.shape
         color_image = cv2.rotate(color_image, cv2.cv2.ROTATE_90_CLOCKWISE)
+        
+        cur_time=time.time()
+        print("Part 2 time (convert images into numpy arrays): ", cur_time-prev_time)
+        prev_time=cur_time
+
         # Show images
         cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
         cv2.imshow('RealSense', color_image)
         cv2.waitKey(1)
+
+        cur_time=time.time()
+        print("Part 3 time (show images): ", cur_time-prev_time)
+        prev_time=cur_time        
 
 finally:
 

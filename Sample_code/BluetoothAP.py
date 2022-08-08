@@ -13,6 +13,29 @@ import keyboard
 import os
 os.nice(19)
 
+def read_file():
+    global head_control
+    with open('keyboard_commands.txt') as f:
+        line = f.readline().strip()
+        if line == 's':
+            head_control = False
+            stop_movement()
+            print("stopped robot. wait 5 seconds to restart")
+            time.sleep(6)
+            
+        elif line == 'e':
+            head_control = False
+            stop_movement()
+            print()
+            print('ending task')
+            outfile = open(datafilepath, 'wb')
+            data_dict = {'data' : all_acc_data, 'mode_data' : mode_data}
+            pkl.dump(data_dict, outfile, protocol=2)
+            outfile.close()
+            print('Task Number Completed:', task_start_num, "  Trial Number Completed:", trial_num)
+            time.sleep(6)
+            
+
 def stop_movement():
     robot.base.translate_by(0)
     robot.base.rotate_by(0)
@@ -36,7 +59,7 @@ def kill_script():
     pkl.dump(data_dict, outfile, protocol=2)
     outfile.close()
     
-atexit.register(kill_script)
+#atexit.register(kill_script)
 
 #participant setup steps
 import random
@@ -100,6 +123,7 @@ angle_range = 20
 def connect_socket():
     s.bind((host, port))
     print("Server Started")
+    print("Please Start GUI script now")
 
 def disconnect_socket():    
     c.close()
@@ -198,6 +222,7 @@ adjust_head(0)
 ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1) #connect to hat
 last_detection_time = time.time()
 while(1):   
+    read_file() #this is the estop condition 
     curr_time = time.time()*1e6
 
     while ser.in_waiting > 0: #this checks to see if a byte is waiting to be read 
