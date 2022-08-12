@@ -74,7 +74,7 @@ task_start_num = int(input("Enter Starting Task Number: "))
 trial_num = int(input("Enter Trial Num: "))
 random_order_list = random.sample(range(1,1+num_tasks), num_tasks)
 print("Do Task:", tasks[random_order_list[task_start_num]])
-datafilepath = '/home/zackory/rchi/Sample_code/dataset/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
+datafilepath = '/home/zackory/rchi/dataset/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
 
 mode = int(input("Enter mode switching choice (1 for speech, 2 for cycle):"))
 if mode == 1:
