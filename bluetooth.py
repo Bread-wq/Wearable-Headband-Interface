@@ -1,7 +1,6 @@
 from imp import is_frozen
 import socket
 import time
-import keyboard
 import stretch_body.robot
 import serial
 import math
@@ -9,7 +8,6 @@ import atexit
 
 import numpy as np
 import pickle as pkl
-import keyboard
 import os
 os.nice(19)
 
@@ -94,8 +92,12 @@ robot.lift.set_soft_motion_limit_min(0.1,limit_type='user')
 robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
 def force_limits():
-    thresh = -55
-    if robot.lift.status['force'] < thresh: #pressing down too hard
+    global force_data
+    thresh = -57
+    force_data.append(robot.lift.status['force'])
+    n=15
+    force = np.mean(force_data[-n:])
+    if force < thresh: #pressing down too hard
         print('exceeded force', robot.lift.status['force'])
         stop_movement()
         robot.lift.move_by(0.025)
@@ -226,6 +228,7 @@ def update_mode(msg):
 
 all_acc_data = []
 mode_data = []
+force_data = []
 buffer = []
 message_length = 13
 
@@ -247,7 +250,7 @@ ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1) #connect to hat
 last_detection_time = time.time()
 last_read_time = time.time()
 while(1):   
-    force_limits()
+    
     read_file() #this is the estop condition 
     curr_time = time.time()*1e6
 
@@ -278,7 +281,7 @@ while(1):
             last_timestep = timestep
             if abs(X) <= 360 and abs(Y) <= 180 and abs(Z) <= 180: #and pico_time_diff < allowable_time_diff and timestep!=0:
                 all_acc_data.append(data)
-                #print(read_time_diff)
+                #print(data)
                 last_read_time = curr_time
             else:
                 data = [np.NaN, np.NaN, np.NaN, np.NaN, time.time()]
@@ -292,6 +295,7 @@ while(1):
 
     send_time_diff = curr_time - last_send_time
     if send_time_diff > send_period and np.shape(all_acc_data)[0] > 30:
+        force_limits()
         #print("Send Time Diff", send_time_diff, send_period)
         last_send_time = curr_time
         #average last n accelerometer values 
