@@ -1,7 +1,6 @@
 #Import tkinter library
 from tkinter import *
 import socket
-import keyboard
 import time
 
 #Create an instance of tkinter frame
@@ -12,10 +11,11 @@ prev=-1
 num_mode=4
 
 #set up socket communication
-host = '172.26.167.160' #client ip
+#host = '172.26.167.160' #client ip
+host = '172.26.168.84' #new laptop client ip
 port = 4005
 #server = ('172.26.166.129', 4000) #robot 1082
-server = ('172.26.163.219',4000)  #robot 1075
+server = ('172.26.163.219', 4000)  #robot 1075
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # timmer
@@ -115,3 +115,4 @@ button2=Button(win, text="connect robot", command=connect_socket).pack(pady=20)
 button3=Button(win, text="disconnect robot", command=disconnect_socket).pack(pady=20)
 
 win.mainloop()
+
