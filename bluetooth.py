@@ -11,6 +11,8 @@ import pickle as pkl
 import os
 os.nice(19)
 
+
+
 def read_file():
     global head_control
     with open('keyboard_commands.txt') as f:
@@ -43,7 +45,7 @@ def stop_movement():
     robot.lift.move_by(0)
     robot.end_of_arm.move_by('wrist_pitch', 0, 0, 0)
     robot.end_of_arm.move_by('wrist_yaw', 0, 0, 0)
-    robot.end_of_arm.move_by('stretch_gripper', 0)
+    #robot.end_of_arm.move_by('stretch_gripper', 0)
     robot.push_command()
     robot_command = 's'
 
@@ -64,7 +66,7 @@ def kill_script():
 
 #participant setup steps
 import random
-participant_num =  5
+participant_num =  4
 random.seed(participant_num) 
 tasks = {1: "bottle", 2: "trash", 3: "clean leg", 4: "blanket", 5: "web interface comparison"}
 num_tasks = 5
@@ -77,7 +79,7 @@ datafilepath = '/home/zackory/rchi/dataset/' + str(participant_num) + '_' + str(
 mode = int(input("Enter mode switching choice (1 for speech, 2 for cycle):"))
 if mode == 1:
     print("Using Speech")
-    detection_gap = 2.5
+    detection_gap = 3.5
 elif mode == 2: 
     print("Using Cycle")
     detection_gap = 1.5
@@ -88,7 +90,7 @@ robot.startup()
 
 #robot.home() #don't use this - just run "python home.py"
 #robot.stow()
-robot.lift.set_soft_motion_limit_min(0.1,limit_type='user')
+robot.lift.set_soft_motion_limit_min(0.01,limit_type='user')
 robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
 def force_limits():
@@ -173,6 +175,11 @@ while True:
 print('Connected')
 
 
+
+print('Connecting to Hat')
+ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=0) #connect to hat
+print('Connected to Hat')
+
 def adjust_head(state):
     if (state==0):
         # robot in drive mode
@@ -225,6 +232,23 @@ def update_mode(msg):
         print('Saved Data')
         print('Task Number Completed:', task_start_num, "  Trial Number Completed:", trial_num)
 
+def angle_difference(angle1, angle2):
+    if (angle1 >= 0 and angle2 >= 0) or (angle1<0 and angle2 <0):
+        diff = angle2 - angle1
+    else:
+        diff1 = angle2 - angle1
+        if np.abs(diff1) < 180:
+            diff = diff1
+        else:
+            if angle1 > angle2:
+                diff2 = 180-angle1 + 180+angle2
+            else:
+                diff2 = 180+angle1 + 180-angle2
+            ds = [diff1, diff2]
+            diffarg = np.argmin(np.abs(ds))
+            diff = ds[diffarg]
+    return diff
+        
 
 all_acc_data = []
 mode_data = []
@@ -234,28 +258,32 @@ message_length = 13
 
 send_frequency = 10 #Hz, shouldn't be more than sampling frequency of accelerometer
 send_period = 1e6/send_frequency
-last_send_time = time.time()
+last_send_time = time.time()*1e6
 X = 0
 Y = 0 
 Z = 0
 
 samp_freq = 20 #Hz
-allowable_lag = 0.1 #10-percent 
+allowable_lag = 0.25 #25-percent 
 allowable_time_diff = 1e6/samp_freq + (1e6/samp_freq)*allowable_lag
 last_read_time = time.time()
 
 
 adjust_head(0)
-ser=serial.Serial('/dev/rfcomm0',baudrate=115200,timeout=1) #connect to hat
+
 last_detection_time = time.time()
 last_read_time = time.time()
+
 while(1):   
     
     read_file() #this is the estop condition 
     curr_time = time.time()*1e6
-
-    while ser.in_waiting > 0: #this checks to see if a byte is waiting to be read 
-        buffer.append(ser.read())
+    try:
+        while ser.in_waiting > 0: #this checks to see if a byte is waiting to be read 
+            buffer.append(ser.read())
+    except IOError:
+        print('Something wrong with hat. Redownload Arduino script')
+        pass
     while len(buffer) >= message_length: #this means a full message is waiting to be processed
         #print("Read diff", curr_time - last_read_time)
         last_read_time = curr_time
@@ -269,17 +297,14 @@ while(1):
             Y = round(int(''.join(reversed(buffer[5]+buffer[6])).encode('hex'), 16)/100.0 - 180,2) 
             Z = round(int(''.join(reversed(buffer[7]+buffer[8])).encode('hex'), 16)/100.0 - 180,2) 
             timestep = int(''.join(reversed(buffer[9]+buffer[10]+buffer[11]+buffer[12])).encode('hex'), 16)
-            if X < 180:
-                X = 180 - X
-            elif X > 180: 
-                X = 180 + (360 - X )     
+            X = X-180
             data = [X, Y, Z, timestep, time.time()]
             read_time_diff = curr_time - last_read_time
             if len(all_acc_data) == 0:
                 last_timestep = timestep
             pico_time_diff = timestep - last_timestep
             last_timestep = timestep
-            if abs(X) <= 360 and abs(Y) <= 180 and abs(Z) <= 180: #and pico_time_diff < allowable_time_diff and timestep!=0:
+            if abs(X) <= 180 and abs(Y) <= 180 and abs(Z) <= 180 and pico_time_diff < allowable_time_diff and timestep!=0:
                 all_acc_data.append(data)
                 #print(data)
                 last_read_time = curr_time
@@ -291,10 +316,17 @@ while(1):
                 buffer.pop(0)
         else:
             buffer.pop(0)
-                
+    if np.shape(all_acc_data)[0] < 40 and np.shape(all_acc_data)[0] > 2:
+        last_val = np.array(all_acc_data)[-1,:]
+        last_last_val = np.array(all_acc_data)[-2,:]
+        dt = last_val[4] - last_last_val[4]  
+        print(data) 
+        if dt > 0.1:
+            print('slow hat', dt, np.shape(all_acc_data)[0])  
+        time.sleep(0.05)
 
     send_time_diff = curr_time - last_send_time
-    if send_time_diff > send_period and np.shape(all_acc_data)[0] > 30:
+    if send_time_diff > send_period and np.shape(all_acc_data)[0] > 40:
         force_limits()
         #print("Send Time Diff", send_time_diff, send_period)
         last_send_time = curr_time
@@ -302,31 +334,36 @@ while(1):
         n = 3
         data = np.nanmean(np.array(all_acc_data)[-n:,0:5], axis = 0)
 
-        diff_threshold = 0.5
+        diff_threshold1 = 4
+        diff_threshold2 = 7
         last_sec = np.array(all_acc_data)[-(int(samp_freq*1.0)):, 0] #one second
         nans, x = np.isnan(last_sec), lambda z: z.nonzero()[0]
         last_sec[nans]= np.interp(x(nans), x(~nans), last_sec[~nans])
-        diffs = np.diff(last_sec)
-        
-        #print(np.max(diffs), np.min(diffs))
-        maxangle = last_sec[np.argmax(diffs)]
-        minangle = last_sec[np.argmin(diffs)]
-        if np.max(diffs) > diff_threshold and np.min(diffs) < -diff_threshold and maxangle-minangle > 2 and maxangle-minangle < 15: #detected speech/mode switch
+        diffs = []
+        for i in np.arange(0,np.shape(last_sec)[0]-1):
+            angle1 = last_sec[i]
+            angle2 = last_sec[i+1]
+            diffs.append(angle_difference(angle1, angle2))
+
+        maxangle = np.max(last_sec)
+        minangle = np.min(last_sec)
+        diff = np.abs(angle_difference(minangle, maxangle))
+        if np.max(diffs) > diff_threshold1 and np.min(diffs) < -diff_threshold1 and diff > 8 and diff < 20: #detected speech/mode switch
             message = "d1"
             if curr_time/1e6 - last_detection_time > detection_gap:
-                print("Small Head Shaking Detected")
+                print("Small Head Shaking Detected", curr_time/1e6 - last_detection_time, np.max(diffs), np.min(diffs), diff)
                 try: 
                     s.sendto(message.encode('utf-8'), addr)
                 except socket.error:
                     pass
-                last_detection_time = curr_time/1e6
-        elif np.max(diffs) > diff_threshold and np.min(diffs) < -diff_threshold and maxangle-minangle > 15:
+                last_detection_time = curr_time/1e6 
+        elif np.max(diffs) > diff_threshold2 and np.min(diffs) < -diff_threshold2 and diff > 20:
             if mode == 2:
                 message = "d2"
             else:
                 message = "d1"
-            if curr_time - last_detection_time > detection_gap:
-                print("Large Head Shaking Detected")
+            if curr_time/1e6 - last_detection_time > detection_gap:
+                print("Large Head Shaking Detected", curr_time/1e6 - last_detection_time, np.max(diffs), np.min(diffs), diff)
                 try: 
                     s.sendto(message.encode('utf-8'), addr)
                 except socket.error:
@@ -442,8 +479,8 @@ while(1):
                     robot.end_of_arm.move_by('wrist_pitch',float(-math.radians(speed)),v_des, a_des)
                     robot_command = 'wu'
                 else:
-                    robot.end_of_arm.move_by('wrist_yaw', 0, 0, 0)
-                    robot.end_of_arm.move_by('wrist_pitch', 0, 0, 0)
+                    #robot.end_of_arm.move_by('wrist_yaw', 0, 0, 0)
+                    #robot.end_of_arm.move_by('wrist_pitch', 0, 0, 0)
                     robot_command = 'ww'
                 
                     
@@ -457,7 +494,7 @@ while(1):
                 robot.end_of_arm.move_by('stretch_gripper',speed)
                 robot_command = 'gc'
             else: 
-                robot.end_of_arm.move_by('stretch_gripper',0)
+                #robot.end_of_arm.move_by('stretch_gripper',0)
                 robot_command = 'gw'
                 
         elif state==4:
