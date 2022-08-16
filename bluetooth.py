@@ -12,6 +12,7 @@ import os
 os.nice(19)
 
 
+participant_num = 2
 
 def read_file():
     global head_control
@@ -66,7 +67,6 @@ def kill_script():
 
 #participant setup steps
 import random
-participant_num =  4
 random.seed(participant_num) 
 tasks = {1: "bottle", 2: "trash", 3: "clean leg", 4: "blanket", 5: "web interface comparison"}
 num_tasks = 5
@@ -74,7 +74,7 @@ task_start_num = int(input("Enter Starting Task Number: "))
 trial_num = int(input("Enter Trial Num: "))
 random_order_list = random.sample(range(1,1+num_tasks), num_tasks)
 print("Do Task:", tasks[random_order_list[task_start_num]])
-datafilepath = '/home/zackory/rchi/dataset/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
+datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
 
 mode = int(input("Enter mode switching choice (1 for speech, 2 for cycle):"))
 if mode == 1:
@@ -90,8 +90,8 @@ robot.startup()
 
 #robot.home() #don't use this - just run "python home.py"
 #robot.stow()
-robot.lift.set_soft_motion_limit_min(0.01,limit_type='user')
-robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
+#robot.lift.set_soft_motion_limit_min(0.01,limit_type='user')
+#robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
 def force_limits():
     global force_data
@@ -120,7 +120,7 @@ def interpolation(x, y1, y2, x1, x2): #x1  = LOW, #x2 = HIGH, #x is the current 
 base_min_translation_speed = 0 #m/s
 base_max_translation_speed = 0.5 #m/s
 base_min_rotation_speed = 0 #rad/s
-base_max_rotation_speed = 0.8 #rad/s
+base_max_rotation_speed = 0.7 #rad/s
 arm_min_lift_speed = 0 #m/s
 arm_max_lift_speed = 0.15 #m/s
 arm_min_extend_speed = 0 #m/s
@@ -143,7 +143,7 @@ zero_Y=0
 zero_Z=0
 
 threshold_start= 15
-angle_range = 20
+angle_range = 30
 
 def connect_socket():
     s.bind((host, port))
@@ -348,7 +348,7 @@ while(1):
         maxangle = np.max(last_sec)
         minangle = np.min(last_sec)
         diff = np.abs(angle_difference(minangle, maxangle))
-        if np.max(diffs) > diff_threshold1 and np.min(diffs) < -diff_threshold1 and diff > 8 and diff < 20: #detected speech/mode switch
+        if np.max(diffs) > diff_threshold1 and np.min(diffs) < -diff_threshold1 and diff > 6 and diff < 20: #detected speech/mode switch
             message = "d1"
             if curr_time/1e6 - last_detection_time > detection_gap:
                 print("Small Head Shaking Detected", curr_time/1e6 - last_detection_time, np.max(diffs), np.min(diffs), diff)
@@ -384,8 +384,7 @@ while(1):
         pitch=data[1]
         roll=data[2]
 
-        if (head_control==True):
-            adjust_head(state)
+            
 
         if (head_control==False):
             robot_command = 's'
@@ -536,8 +535,9 @@ while(1):
             #print("pitch: ", pitch, "pthreshes: ", pitch_threshold_L, pitch_threshold_H)
             #print("yaw: ", yaw, "ythreshes: ", yaw_threshold_L, yaw_threshold_H)
             #print("Robot command:", robot_command)
-            pass
-        robot.push_command()
+            adjust_head(state)
+            robot.push_command()
+
 
         #if state== 4:
         #    robot.stop()
