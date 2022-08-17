@@ -12,7 +12,7 @@ import os
 os.nice(19)
 
 
-participant_num = 2
+participant_num = 3
 
 def read_file():
     global head_control
@@ -66,6 +66,7 @@ def kill_script():
 #atexit.register(kill_script)
 
 #participant setup steps
+'''
 import random
 random.seed(participant_num) 
 tasks = {1: "bottle", 2: "trash", 3: "clean leg", 4: "blanket", 5: "web interface comparison"}
@@ -75,6 +76,28 @@ trial_num = int(input("Enter Trial Num: "))
 random_order_list = random.sample(range(1,1+num_tasks), num_tasks)
 print("Do Task:", tasks[random_order_list[task_start_num]])
 datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(random_order_list[task_start_num]) + '_' + str(trial_num)
+'''
+
+tasks = {1: "web interface comparison", 2: "bottle", 3: "trash", 4: "blanket", 5: "clean leg"}
+task_start_num = int(input("Enter Starting Task Number: "))
+trial_num = int(input("Enter Trial Num: "))
+if task_start_num == 1 and participant_num%2 == 0:
+    print("Do Task:", tasks[1])
+    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(1) + '_' + str(trial_num)
+elif task_start_num == 1 and participant_num%2 == 1:
+    print("Do Task:", tasks[2])
+    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(2) + '_' + str(trial_num)
+elif task_start_num == 2 and participant_num%2 == 0:
+    print("Do Task:", tasks[2])
+    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(2) + '_' + str(trial_num)
+elif task_start_num == 2 and participant_num%2 == 1:
+    print("Do Task:", tasks[1])
+    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(1) + '_' + str(trial_num)
+else:
+    print("Do Task:", tasks[task_start_num])
+    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(task_start_num) + '_' + str(trial_num)
+
+
 
 mode = int(input("Enter mode switching choice (1 for speech, 2 for cycle):"))
 if mode == 1:
@@ -282,7 +305,7 @@ while(1):
         while ser.in_waiting > 0: #this checks to see if a byte is waiting to be read 
             buffer.append(ser.read())
     except IOError:
-        print('Something wrong with hat. Redownload Arduino script')
+        print('Something wrong with hat. Make sure hat is on and sending messages')
         pass
     while len(buffer) >= message_length: #this means a full message is waiting to be processed
         #print("Read diff", curr_time - last_read_time)
