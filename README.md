@@ -81,4 +81,3 @@ Modes include "base/drive", "arm", "wrist", "gripper"
 2. Enter 'e' in the terminal running ```kayboard.py```, the terminal running ```bluetooth.py``` should print 'Saved Data' 
 3. Ctrl-C to terminate both ```bluetooth.py``` and ```sr+socket+voice.py```
 
-
