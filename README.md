@@ -77,7 +77,8 @@ Modes include "base/drive", "arm", "wrist", "gripper"
 5. If the speech recognition fails to identify the phrase said, it will say "Repeat", and we need to repeat shaking the head and saying the instruction again.
 
 # Saving Experiment Data
-1. On line 85 in ```bluetooth.py```, fill in ```user_data_path= '_____'``` with the intended directory to save data.
-2. Enter 'e' in the terminal running ```kayboard.py```, the terminal running ```bluetooth.py``` should print 'Saved Data' 
-3. Ctrl-C to terminate both ```bluetooth.py``` and ```sr+socket+voice.py```
+1. On line 15 in ```bluetooth.py```, fill in participant number.
+2. On line 85 in ```bluetooth.py```, fill in ```user_data_path= '_____'``` with the intended directory to save data.
+3. Enter 'e' in the terminal running ```kayboard.py```, the terminal running ```bluetooth.py``` should print 'Saved Data' 
+4. Ctrl-C to terminate both ```bluetooth.py``` and ```sr+socket+voice.py```
 
