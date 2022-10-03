@@ -81,21 +81,24 @@ datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(ran
 tasks = {1: "web interface comparison", 2: "bottle", 3: "trash", 4: "blanket", 5: "clean leg"}
 task_start_num = int(input("Enter Starting Task Number: "))
 trial_num = int(input("Enter Trial Num: "))
+
+user_data_path= '_____' # replace with the directory you want to save your experiment data to 
+
 if task_start_num == 1 and participant_num%2 == 0:
     print("Do Task:", tasks[1])
-    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(1) + '_' + str(trial_num)
+    datafilepath = user_data_path + str(participant_num) + '_' + str(1) + '_' + str(trial_num)
 elif task_start_num == 1 and participant_num%2 == 1:
     print("Do Task:", tasks[2])
-    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(2) + '_' + str(trial_num)
+    datafilepath = user_data_path + str(participant_num) + '_' + str(2) + '_' + str(trial_num)
 elif task_start_num == 2 and participant_num%2 == 0:
     print("Do Task:", tasks[2])
-    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(2) + '_' + str(trial_num)
+    datafilepath = user_data_path + str(participant_num) + '_' + str(2) + '_' + str(trial_num)
 elif task_start_num == 2 and participant_num%2 == 1:
     print("Do Task:", tasks[1])
-    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(1) + '_' + str(trial_num)
+    datafilepath = user_data_path + str(participant_num) + '_' + str(1) + '_' + str(trial_num)
 else:
     print("Do Task:", tasks[task_start_num])
-    datafilepath = '/home/rchi/rchi/dataset/' + str(participant_num) + '_' + str(task_start_num) + '_' + str(trial_num)
+    datafilepath = user_data_path + str(participant_num) + '_' + str(task_start_num) + '_' + str(trial_num)
 
 
 
@@ -110,11 +113,6 @@ elif mode == 2:
 # global variables
 robot=stretch_body.robot.Robot()
 robot.startup()
-
-#robot.home() #don't use this - just run "python home.py"
-#robot.stow()
-#robot.lift.set_soft_motion_limit_min(0.01,limit_type='user')
-#robot.lift.set_soft_motion_limit_max(0.98,limit_type='user')
 
 def force_limits():
     global force_data
@@ -178,8 +176,8 @@ def disconnect_socket():
     c.close()
     robot.stop()
 
-host = '172.26.163.219' #Server ip 1075
-# host = '172.26.166.129' #Server ip 1082
+host = '_____' #Server ip, replace with <Robot IP>
+
 port = 4000
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.settimeout(0.0)
@@ -562,16 +560,3 @@ while(1):
             robot.push_command()
 
 
-        #if state== 4:
-        #    robot.stop()
-
-        # robot.arm.move_by(-0.1)
-        # robot.base.rotate_by(0.3)
-        # robot.push_command()
-        # time.sleep(2.0)
-
-        # robot.base.translate_by(-0.3)
-        # time.sleep(2.0)
-
-
-        
