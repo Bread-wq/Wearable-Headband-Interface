@@ -21,91 +21,129 @@ For video demos, visit https://sites.google.com/view/hat-teleop/home.
 1. Remote desktop control of the robot using either [Getscreen.me](https://getscreen.me/) or [DWService](https://www.dwservice.net/).
 2. On Stretch RE1, create a new user account and log into that account.
 3. Install the required dependencies: 
-```pip install -r Requirements_laptop1.txt ```
-
-#### On laptop 2:
-1. Install the required dependencies: 
-```pip install -r Requirements_laptop2.txt ```
-2. Connect to the earbuds via bluetooth.
-
-
-## Instructions on how to use the repository
-1. Clone the repository to your Stretch RE1 robot and the other laptop
+```sh
+pip install -r Requirements_laptop1.txt 
+```
+4. Clone the repository to your Stretch RE1 robot:
 ```sh
 git clone https://github.com/Bread-wq/Wearable-Headband-Interface.git
 ```
 
-2. Upload IMU\_Button\_bluetooth.ino to your TinyPico ESP32 
-
-3. Obtain the MAC address of your TinyPico ESP32 ```<dev>```
-
-4. Obtain the IP address of your Stretch RE1 robot, ```<Robot IP>``` 
+#### On laptop 2:
+1. Install the required dependencies: 
 ```sh
-ifconfig -a
+pip install -r Requirements_laptop2.txt 
 ```
-- Go to bluetooth.py, replace the IP address on line 181 with ```<Robot IP>``` obtained.
-- On the other laptop, in ```GUI/sr+socket+voice.py```, replace the server IP address on line 23 with ```<Robot IP>```
-
-5. Similarly, get the IP address of the computer for running speech recognition, ```<Comp IP>```
-- In ```GUI/sr+socket+voice.py```, replace the host IP address on line 20 with ```<Comp IP>```
-
-
-## How to connect the Hat to Stretch RE1 via bluetooth
-1. Install http://www.bluez.org/
-2. Run
+2. Connect to the earbuds via bluetooth.
+3. Clone the repository to laptop 2:
+```sh
+git clone https://github.com/Bread-wq/Wearable-Headband-Interface.git
 ```
+
+#### On TinyPico ESP32:
+1. Connect TinyPico on one of the computers.
+2. Open Arduino and upload `IMU\_Button\_bluetooth.ino` to your TinyPico.
+
+
+### Wireless communication
+#### Bluetooth communication between TinyPico and robot:
+1. Obtain the MAC address of your TinyPico ESP32 `<dev>`
+2. Install [BlueZ](http://www.bluez.org/)
+3. Run
+```sh
 rfkill unblock all
 bluetoothctl
 ```
-
-3. Pair using ```bluetoothctl```:
+4. Pair using `bluetoothctl`:
 ```sh
 power on
 agent on
 scan on
 pair <dev>
 ```
-Exit ```bluetoothctl``` by pressing ```ctl d```
+Exit `bluetoothctl` by pressing `ctl d`.
 
-4. Create serial device:
+5. Create serial device:
+
 ```sh
 sudo rfcomm bind 0 <dev>
 ```
-## Setup communication between robot and the laptop processing speech recognition:
-1. On the robot, run 
-```python home.py``` to home the robot before running each experiment
-```sudo python keyboard.py```
-Open another terminal and run 
-```python bluetooth.py```
-- Enter task number and trial number as prompted
-- Enter 1 for speech recognition mode
+Now the TinyPico is connected to Stretch RE1.
 
-2. On another laptop, ```cd GUI```
-run ```python3 sr+socket+voice.py```
-The laptop will connect to the robot via socket communication
 
-## Instructions on how to use speech recognition to switch mode
-1. To start controlling the robot: wear the hat and shake the head left and right, after a "beep" sound, say "start". 
-If the speech recognition parses the word correctly, it will say "start" to confirm that is what it heard.
-Hold the head still for 2 seconds to wait for the computer to say "calibrated"
-The default mode will be "drive mode" when first start the robot
-2. To switch to another mode, shake the head left and right, wait for a "beep" sound and say "switch to <mode>"
-Modes include "drive", "arm", "wrist", "gripper"
-3. After each head shake, the program will be listening to the input for 3s, so try to say it clearly once "beep" sound is heard
-4. If the speech recognition fails to identify the phrase said, it will say "Repeat", and we need to repeat shaking the head and saying the instruction again
+#### Serial communication between robot (controled on laptop 1) and Laptop 2:
+1. Obtain the IP address of your Stretch RE1 robot, `<Robot IP>`
 
-# Stop the robot
-1. To stop the robot from moving temporarily, move your head to the calibrated position
-2. To stop the hat from controlling the robot, shake the head and say "pause"
-3. If the researcher wants to stop the experiment and stop the robot, Ctrl-C to terminate ```main.py``` and press the E-Stop button on the robot to fully stop it.
+- Go to main.py, replace the IP address on line 181 with ```<Robot IP>``` obtained.
+- On Laptop 2, in `GUI/Voice_recognition.py`, replace the server IP address on line 23 with `<Robot IP>`.
+
+2. Similarly, get the IP address of the Laptop 2 for running speech recognition, `<Comp IP>`.
+- In `GUI/Voice_recognition.py`, replace the host IP address on line 20 with `<Comp IP>`.
+
+
+## Start Experiment:
+1. On the robot, open <terminal 1> and run the following command to home the robot and listen to the sign to stop data recording before running each experiment.
+```sh
+python home.py
+sudo python keyboard.py
+```
+
+2. Open <terminal 2> and run: 
+```sh
+python main.py
+```
+- Enter task number and trial number as prompted.
+- Enter 1 for speech recognition mode, or 2 for cycle mode.
+
+3. On Laptop 2, run 
+```sh
+cd GUI
+python3 Voice_recognition.py
+```
+
+- Enter 1 for speech recognition mode, or 2 for cycle mode.
+
+The Laptop 2 will connect to the robot via socket communication, and <terminal 2> on robot should print "Connected".
+
+## Instructions on how to switch mode [Video instruction](https://www.youtube.com/watch?v=v8wXM-cCss0) for more details.
+### Method 1: Speech recognition
+1. To send a speech command: 
+- Wear the hat and shake the head left and right, after a "beep" sound, say the intended command. (Shake your head again if no "beep" sound is heard).
+- After each head shake, the program will be listening to the input for 3s, so try to say it clearly once "beep" sound is heard
+- If the speech recognition parses the word correctly, it play out the command heard to confirm that is correct.
+- If the speech recognition fails to identify the phrase said, it will say "Repeat", and we need to repeat shaking the head and saying the command again.
+
+2. Calibration command:
+- Command phrase: "start".
+- After laptop 2 capture the command correctly, hold the head still for 2 seconds to wait for the computer to say "calibrated". This is to record the natural head position.
+- Note: The default mode will be "drive mode" when the robot first starts.
+
+3. Mode switching commands: wear the hat and shake the head left and right, after a "beep" sound, say "start". <br>
+- Commands are in the form of: "switch to <mode>"
+- Modes include "drive", "arm", "wrist", "gripper"
+
+### Method 2: Cycle 
+If you choose Cycle mode, each time you shake your head, the mode will switch to the next one in the following order:
+- "drive", "arm", "wrist", "gripper"
+
+## Stop the robot
+1. To stop the robot from moving temporarily, move your head to the calibrated position.
+2. To stop the hat from controlling the robot in speech recognition mode, shake the head and say "pause".
+3. If the researcher wants to stop the experiment and stop the robot, `Ctrl-C` to terminate `main.py` and press the E-Stop button on the robot to fully stop it.
   
 ![EStop button: the white button shown](https://user-images.githubusercontent.com/66550924/194368128-14fd9672-23ec-4a38-b5bf-83271cb101be.png)
   
   *Emergency Stop Button*
 
 ## Saving Experiment Data
-1. On line 15 in ```bluetooth.py```, fill in participant number.
-2. On line 85 in ```bluetooth.py```, fill in ```user_data_path= '_____'``` with the intended directory to save data.
-3. Enter 'e' in the terminal running ```keyboard.py```, the terminal running ```bluetooth.py``` should print 'Saved Data' 
-4. Ctrl-C to terminate both ```bluetooth.py``` and ```sr+socket+voice.py```
+1. On line 15 in `main.py`, fill in participant number.
+2. On line 85 in `main.py`, fill in `user_data_path= '_____'` with the intended directory to save data.
+3. Enter 'e' in <terminal 1> (running `keyboard.py`), <terminal 2> (running `main.py`) should print 'Saved Data' 
+4. `Ctrl-C` to terminate both `main.py` and `Voice_recognition.py`
+5. Data saved: 
+- IMU data: accelerometer data in all 3 axes  
+- Mode data: the mode robot is in and the movement command sent to the robot
+  - Mode includes: "drive", "arm", "wrist", "gripper"
+  - Movement commands are encoded by 2 characters: e.g. 'wr' means "wrist right", 'wl' means "wrist left", and 'ww' means "wrist wait"
+- Force data: the force applied by the robot lift
 
