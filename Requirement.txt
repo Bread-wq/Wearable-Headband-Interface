@@ -1,0 +1,6 @@
+numpy>=1.18.5
+pickle-mixin
+sockets
+pyserial
+keyboard
+SpeechRecognition
