@@ -1,6 +1,3 @@
-#Import tkinter library
-#from curses.textpad import Textbox
-from tkinter import *
 import socket
 import time
 from gtts import gTTS
@@ -228,7 +225,11 @@ while 1:
 
 
 '''
+recycled GUI code using tkinter:
 
+#Import tkinter library
+#from curses.textpad import Textbox
+from tkinter import *
 
 def disconnect_socket(event=None):
     global s
