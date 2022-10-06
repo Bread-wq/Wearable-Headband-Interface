@@ -13,10 +13,8 @@ import speech_recognition as sr
 
 
 #set up socket communication
-#host = '172.26.167.160' #client ip
 host = '______' #new laptop client ip
 port = 4005
-#server = ('172.26.166.129', 4000) #robot 1082
 server = ('______', 4000)  # Fill in with <Robot IP>
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.settimeout(5)
