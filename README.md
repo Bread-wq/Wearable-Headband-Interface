@@ -18,17 +18,17 @@ For video demos, visit https://sites.google.com/view/hat-teleop/home.
 
 ### Software Installation
 #### On laptop 1:
-1. Remote desktop control of the robot using either [Getscreen.me](https://getscreen.me/) or [DWService](https://www.dwservice.net/)
+1. Remote desktop control of the robot using either [Getscreen.me](https://getscreen.me/) or [DWService](https://www.dwservice.net/).
 2. On Stretch RE1, create a new user account and log into that account.
-3. Install the following python packages using `pip install`: 
-```numpy, pickle, socket, serial, keyboard, speech_recognition ```
-// to do: put these in a Requirement.txt
+3. Install the required dependencies: 
+```pip install -r Requirements_laptop1.txt ```
+
+#### On laptop 2:
+1. Install the required dependencies: 
+```pip install -r Requirements_laptop2.txt ```
+2. Connect to the earbuds via bluetooth.
 
 
-4. Two computers, one pair of wireless earbuds. 
-  - One computer for remote control of the robot using either [Getscreen.me](https://getscreen.me/) or [DWService](https://www.dwservice.net/)
-  - The other computer for running the speech recognition, and earbuds which serve as a microphone are connected to it through bluetooth 
-  
 ## Instructions on how to use the repository
 1. Clone the repository to your Stretch RE1 robot and the other laptop
 ```sh
