@@ -13,7 +13,7 @@ For video demos, visit https://sites.google.com/view/hat-teleop/home.
 - [HDMI dongle](https://www.amazon.com/Headless-Display-Emulator-Headless-1920x1080-Generation/dp/B06XT1Z9TF/ref=asc_df_B06XT1Z9TF/?tag=hyprod-20&linkCode=df0&hvadid=309751315916&hvpos=&hvnetw=g&hvrand=1849427447759673039&hvpone=&hvptwo=&hvqmt=&hvdev=c&hvdvcmdl=&hvlocint=&hvlocphy=9005925&hvtargid=pla-547341237007&psc=1&tag=&ref=&adgrpid=67183599252&hvpone=&hvptwo=&hvadid=309751315916&hvpos=&hvnetw=g&hvrand=1849427447759673039&hvqmt=&hvdev=c&hvdvcmdl=&hvlocint=&hvlocphy=9005925&hvtargid=pla-547341237007) plugged into the robot for remote desktop.
 - Wireless earbuds with built-in microphone.
 - Laptop 1: For remote control of the robot computer.
-- Laptop 2: For speech recognition processing. <br>
+- Laptop 2: For speech recognition processing. (The "companion laptop" in the figure is Laptop 2). <br>
 (Note: Laptop 1 and 2 can possibly be combined into using a single computer, using Remote Desktop to control the robot computer and using terminal to run the speech recognition script. Here we call them Laptop 1 and Laptop 2 for easy reference.)
 
 ### Software Installation
@@ -129,7 +129,7 @@ If you choose Cycle mode, each time you shake your head, the mode will switch to
 ## Stop the robot
 1. To stop the robot from moving temporarily, move your head to the calibrated position.
 2. To stop the hat from controlling the robot in speech recognition mode, shake the head and say "pause".
-3. If the researcher wants to stop the experiment and stop the robot, `Ctrl-C` to terminate `main.py` and press the E-Stop button on the robot to fully stop it.
+3. If the researcher wants to stop the experiment and stop the robot, send 's' in the terminal with keyboard.py running or press the E-Stop button on the robot to fully stop it.
   
 ![EStop button: the white button shown](https://user-images.githubusercontent.com/66550924/194368128-14fd9672-23ec-4a38-b5bf-83271cb101be.png)
   
